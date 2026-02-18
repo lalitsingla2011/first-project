@@ -11,13 +11,49 @@
 <div class="search-bar-wrap" id="search-bar-wrap">
   <div class="search-bar-inner">
     <span class="search-icon">🔍</span>
-    <input type="text" id="global-search" placeholder="Search emails and todos..." autocomplete="off"
+    <input type="text" id="global-search" placeholder="Search dashboard..." autocomplete="off"
       oninput="onSearchInput(this.value)" onkeydown="onSearchKey(event)"/>
     <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
   </div>
   <div class="search-results" id="search-results"></div>
 </div>
+<button id="settings-btn" onclick="toggleSettings()" title="Settings">⚙️</button>
 <button id="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌙 Dark</button>
+
+<!-- Settings Panel -->
+<div id="settings-panel" class="settings-panel">
+  <div class="settings-section">
+    <div class="settings-title">Background</div>
+    <label class="settings-label">Solid Colour</label>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+      <input type="color" id="bg-color-picker" value="#0d0d12" onchange="applyBgSolid(this.value)"/>
+      <span style="font-size:11px;color:var(--muted)">Pick a colour</span>
+    </div>
+    <label class="settings-label">Gradient Presets</label>
+    <div class="bg-presets">
+      <div class="bg-swatch" style="background:linear-gradient(135deg,#667eea,#764ba2)" onclick="applyBgGradient('linear-gradient(135deg,#667eea,#764ba2)')"></div>
+      <div class="bg-swatch" style="background:linear-gradient(135deg,#f093fb,#f5576c)" onclick="applyBgGradient('linear-gradient(135deg,#f093fb,#f5576c)')"></div>
+      <div class="bg-swatch" style="background:linear-gradient(135deg,#4facfe,#00f2fe)" onclick="applyBgGradient('linear-gradient(135deg,#4facfe,#00f2fe)')"></div>
+      <div class="bg-swatch" style="background:linear-gradient(135deg,#43e97b,#38f9d7)" onclick="applyBgGradient('linear-gradient(135deg,#43e97b,#38f9d7)')"></div>
+      <div class="bg-swatch" style="background:linear-gradient(135deg,#fa709a,#fee140)" onclick="applyBgGradient('linear-gradient(135deg,#fa709a,#fee140)')"></div>
+      <div class="bg-swatch" style="background:linear-gradient(135deg,#a18cd1,#fbc2eb)" onclick="applyBgGradient('linear-gradient(135deg,#a18cd1,#fbc2eb)')"></div>
+    </div>
+    <label class="settings-label">Image URL</label>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input type="text" id="bg-image-url" placeholder="https://example.com/image.jpg" style="flex:1;font-size:12px"/>
+      <button class="btn" style="padding:7px 12px;font-size:11px" onclick="applyBgImage()">Set</button>
+    </div>
+    <button class="btn" style="width:100%;background:var(--surface2);color:var(--text2);font-size:11px;padding:7px" onclick="resetBg()">Reset Background</button>
+  </div>
+  <div class="settings-section">
+    <div class="settings-title">Data Backup</div>
+    <button class="btn" style="width:100%;font-size:12px;padding:8px;margin-bottom:8px" onclick="exportData()">Export All Data</button>
+    <label class="btn" style="width:100%;display:block;text-align:center;background:var(--surface2);color:var(--text2);font-size:12px;padding:8px;cursor:pointer">
+      Import Data
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)"/>
+    </label>
+  </div>
+</div>
 <div class="grid">
 
   <!-- CLOCK + QUOTE -->
@@ -107,6 +143,12 @@
     </div>
     <div class="input-row">
       <input type="text" id="todo-input" placeholder="Add a task..." maxlength="80"/>
+      <select id="todo-priority">
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+      </select>
+      <input type="date" id="todo-due"/>
       <button class="btn" onclick="addTodo()">Add</button>
     </div>
     <div class="item-scroll" id="todo-list"></div>
@@ -126,18 +168,62 @@
     <div class="item-scroll" id="reminder-list"></div>
   </div>
 
+  <!-- POMODORO TIMER -->
+  <div class="card c-pomodoro">
+    <div class="card-header">
+      <div class="card-label">Pomodoro Timer</div>
+      <button class="btn-expand" onclick="expandWidget('pomodoro')" title="Expand">⤢</button>
+    </div>
+    <div class="pomo-mode" id="pomo-mode">Work</div>
+    <div class="pomo-display" id="pomo-display">25:00</div>
+    <div class="pomo-sessions" id="pomo-sessions">Sessions: 0</div>
+    <div class="pomo-controls">
+      <button class="btn" id="pomo-start" onclick="pomoStartPause()">Start</button>
+      <button class="btn" style="background:var(--surface2);color:var(--text2)" onclick="pomoReset()">Reset</button>
+    </div>
+    <div class="pomo-config">
+      <label>Work <input type="number" id="pomo-work-min" value="25" min="1" max="90" onchange="pomoUpdateConfig()"/>m</label>
+      <label>Break <input type="number" id="pomo-break-min" value="5" min="1" max="30" onchange="pomoUpdateConfig()"/>m</label>
+    </div>
+  </div>
+
+  <!-- NEWS / RSS FEED -->
+  <div class="card c-news">
+    <div class="card-header">
+      <div class="card-label">News</div>
+      <button class="btn-refresh" id="news-refresh" onclick="refreshNews()" title="Refresh">↻</button>
+      <button class="btn-expand" onclick="expandWidget('news')" title="Expand">⤢</button>
+    </div>
+    <div class="news-config-row" id="news-config-row" style="display:none">
+      <input type="text" id="rss-url-input" placeholder="RSS feed URL..."/>
+      <button class="btn" style="padding:7px 12px;font-size:12px" onclick="saveRssUrl()">Save</button>
+    </div>
+    <div class="news-scroll" id="news-list">
+      <div class="list-empty">Loading news...</div>
+    </div>
+    <button class="btn" style="width:100%;background:var(--surface2);color:var(--text2);font-size:11px;padding:6px;margin-top:8px" onclick="toggleRssConfig()">Change Feed</button>
+  </div>
+
 </div>
 
 <!-- NOTES (pinned bottom) -->
 <div class="card c-notes">
   <div class="card-header">
     <div class="card-label">Notes</div>
+    <button id="notes-preview-btn" class="btn-preview" onclick="toggleNotesPreview()">Preview</button>
     <button class="btn-expand" onclick="expandWidget('notes')" title="Expand">⤢</button>
   </div>
-  <textarea id="notes-area" placeholder="Type your notes here..."></textarea>
+  <div class="input-row">
+    <input type="text" id="note-title-input" placeholder="Note title..." maxlength="80"/>
+    <button class="btn" onclick="addNote()">Add Note</button>
+  </div>
+  <textarea id="notes-area" placeholder="Select a note or add a new one..."></textarea>
+  <div id="notes-preview" class="notes-preview" style="display:none"></div>
   <div class="notes-status" id="notes-status"></div>
+  <div class="item-scroll" id="notes-list"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="script.js"></script>
 
 
