@@ -1474,27 +1474,18 @@ async function fetchNews() {
   }
 
   try {
-    const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(rssUrl);
-    const resp = await fetch(proxyUrl);
-    const text = await resp.text();
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(text, 'text/xml');
+    const apiUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(rssUrl);
+    const resp = await fetch(apiUrl);
+    const data = await resp.json();
 
-    // Support both RSS <item> and Atom <entry>
-    const rssItems = xml.querySelectorAll('item');
-    const atomEntries = xml.querySelectorAll('entry');
-    const items = rssItems.length ? rssItems : atomEntries;
+    if (data.status !== 'ok' || !data.items) throw new Error(data.message || 'Bad response');
 
-    newsItems = Array.from(items).slice(0, 20).map(item => {
-      const title = item.querySelector('title')?.textContent || 'Untitled';
-      const link = item.querySelector('link')?.textContent
-        || item.querySelector('link')?.getAttribute('href') || '#';
-      const pubDate = item.querySelector('pubDate')?.textContent
-        || item.querySelector('published')?.textContent
-        || item.querySelector('updated')?.textContent || '';
+    newsItems = data.items.slice(0, 20).map(item => {
+      const title = item.title || 'Untitled';
+      const link = item.link || '#';
       let dateStr = '';
-      if (pubDate) {
-        const d = new Date(pubDate);
+      if (item.pubDate) {
+        const d = new Date(item.pubDate);
         if (!isNaN(d)) dateStr = d.toLocaleDateString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
       }
       return { title, link, date: dateStr };
